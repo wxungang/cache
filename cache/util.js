@@ -3,3 +3,5 @@
  *
  */
 "use strict";
+
+document.getElementById('update').innerText = 'content update!';
