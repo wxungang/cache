@@ -7,7 +7,8 @@ pwa 是一整套的相关技术方案的使用。
 
 - manifest : 
 - cache :  仅仅是 存储用的对象！包含 增删查改 等的相关的api (**有点像 NOSQL 非关系型数据库**)
-- service-worker :
+- service-worker : 服务工作线程概念（后台线程）
+- worker :
 
 
 ## 目录
