@@ -157,6 +157,7 @@ function updateCacheName() {
     })
 }
 
+//response 只读 （没法把 timeout 参数写入对应的response中去，只能定义一个全局的变量：有点坑！）
 let _requestTimeout = {};
 
 /**
