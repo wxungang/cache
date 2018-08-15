@@ -20,6 +20,7 @@ $.ajax({
     context: $('body'),
     success: function (data) {
         console.log(data)
+        $('#ajax_get').text(JSON.stringify(data));
     },
     error: function (xhr, type) {
         console.log(xhr)
