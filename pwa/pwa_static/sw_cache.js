@@ -19,11 +19,12 @@ const cacheName = 'sw_cache_update';
  * @type {string[]}
  */
 const cacheFiles = [
-    '/',
-    './index.html',
+    './script/ajax.js',
     './script/page.js',
     './style/page.css'
 ];
+
+const cacheWhitelist = ['index.html'];
 
 /**
  * sw install 事件（生命周期）
@@ -88,6 +89,8 @@ self.addEventListener('fetch', FetchEvent => {
                     return response;
                 }
 
+                if(cacheWhitelist.indexOf(FetchEvent.request.url)>=0){
+                }
                 // IMPORTANT: Clone the response. A response is a stream
                 // and because we want the browser to consume the response
                 // as well as the cache consuming the response, we need
