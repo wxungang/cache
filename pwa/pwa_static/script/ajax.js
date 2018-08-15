@@ -13,7 +13,7 @@ $.ajax({
     url: `${location.origin}/uci_react/region/getCity.json`,
     // data to be added to query string:
     data: {
-        random: Math.random()
+        // random: Math.random()
     },
     // type of data we are expecting in return:
     // dataType: 'json',
@@ -33,14 +33,14 @@ $.ajax({
  * get 请求 拦截
  *      定时 timeout 内不重复调用！
  *      1、 业务接口层控制 ： parseInt((new Date()).getTime() / (1000 * 60 * 5)) //5分钟内不重复发送
- *      2、 sw 层统一封装 ： 60 * 5 （5分钟）
+ *      2、 sw 层统一封装 ： 60 * 5 （5分钟） [支持静态文件的 yourFilePath?timeout=60*60*24*30]
  */
 $.ajax({
     type: 'GET',
     url: `${location.origin}/uci_react/region/getCity.json`,
     // data to be added to query string:
     data: {
-        timeout: (1000 * 60 * 1)
+        timeout: (60 * 1)
     },
     // type of data we are expecting in return:
     // dataType: 'json',

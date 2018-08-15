@@ -39,7 +39,7 @@ const cacheWhitelist = ['index.html'];
 self.addEventListener('install', InstallEvent => {
     //sw 更新之后立即 接管替换旧的 sw （无需 activate 事件）
     self.skipWaiting();
-    console.log(InstallEvent);
+    // console.log(InstallEvent);
     //waitUntil :
     InstallEvent.waitUntil(
         //链接 对应的cache ,并进行下载 & 缓存 数据！
@@ -64,12 +64,11 @@ self.addEventListener('install', InstallEvent => {
  *
  */
 self.addEventListener('fetch', FetchEvent => {
-    console.log(FetchEvent);
+    // console.log(FetchEvent);
     FetchEvent.respondWith(
         caches.match(FetchEvent.request).then(response => {
-            console.log(response);
             //已经缓存 直接返回 。没有则重新fetch 同时更新到缓存中！
-            return response || fetch(FetchEvent.request).then(response => {
+            return responseTimeout(response, FetchEvent.request) || fetch(FetchEvent.request).then(response => {
                 /**
                  * 在 fetch 请求中添加对 .then() 的回调。
 
@@ -88,21 +87,21 @@ self.addEventListener('fetch', FetchEvent => {
                 if (!response || response.status !== 200 || response.type !== 'basic') {
                     return response;
                 }
-
-                if(cacheWhitelist.indexOf(FetchEvent.request.url)>=0){
+                //
+                if (cacheWhitelist.indexOf('') >= 0) {
                 }
                 // IMPORTANT: Clone the response. A response is a stream
                 // and because we want the browser to consume the response
                 // as well as the cache consuming the response, we need
                 // to clone it so we have two streams.
-                var responseToCache = response.clone();
-
+                let responseToCache = response.clone();
+                console.log(responseToCache);
                 caches.open(cacheName)
                     .then(function (cache) {
                         cache.put(FetchEvent.request, responseToCache);
                     });
-
-                return response;
+                //
+                return responseTimeout(response, FetchEvent.request);//response
             });
         })
     );
@@ -158,6 +157,57 @@ function updateCacheName() {
     })
 }
 
+let _requestTimeout = {};
+
+/**
+ * 定时 timeout 内不重复调用！
+ * sw 层统一封装
+ * @param response
+ * @param request
+ * @returns {*}
+ */
+function responseTimeout(response, request) {
+    if (!response) {
+        //response 不存在直接 返回获取 服务端最新的
+        return response
+    }
+    let _url2Obj = url2Obj(request.url);
+    let _timeout = _url2Obj.timeout || 0;
+    let _resTimeout = _requestTimeout[response.url];
+
+    let _now = (new Date()).getTime() / 1000; //单位秒
+    console.log(response.timeout);
+
+    if (_timeout && _resTimeout) {
+        console.log(request.url);
+        console.log(_now - _resTimeout);
+        // 请求设置 _timeout & response 有更新 timeout (即 不是第一次)
+        if (_now - _resTimeout > _timeout) {
+            // 过期 删除 缓存
+            caches.open(cacheName)
+                .then(function (cache) {
+                    cache.delete(request).then(data => {
+                        if (data) {
+                            delete _requestTimeout[response.url];
+                        }
+
+                    });
+                });
+        }
+        //删除之后立即获取最新的数据 （或者 下次获取 最新的数据）
+        // return null;
+    } else {
+        console.log(response);
+        // 请求没有设置 _timeout 或者 response 没有 timeout (即 第一次请求)
+        // response.timeout = _now;
+        // response.__proto__.timeout = _now;
+        _requestTimeout[response.url] = _now
+    }
+    console.log('------------_requestTimeout--------------');
+    console.log(_requestTimeout)
+    return response;
+}
+
 
 /**
  * 没啥 实际作用。
@@ -169,4 +219,23 @@ function cacheKey(cache, tips) {
         console.log(`-------caches[${cacheName}]------${tips}--------------`);
         console.log(cacheKeyList);//request 对象
     });
+}
+
+function url2Obj(str) {
+    if (!str) {
+        //单页面 hash 模式下 search ='';
+        str = location.search || location.hash || location.href;
+    }
+
+    var query = {};
+
+    str.replace(/([^?&=]*)=([^?&=]*)/g, function (m, a, d) {
+        if (typeof query[a] !== 'undefined') {
+            query[a] += ',' + decodeURIComponent(d);
+        } else {
+            query[a] = decodeURIComponent(d);
+        }
+    });
+
+    return query;
 }
