@@ -11,7 +11,7 @@
  *
  *
  */
-
+const dataUrl = new RegExp('\.s?json'); //异步实时更新的数据 规则
 
 const cacheName = 'sw_cache_update';
 /**
@@ -65,46 +65,31 @@ self.addEventListener('install', InstallEvent => {
  */
 self.addEventListener('fetch', FetchEvent => {
     // console.log(FetchEvent);
-    FetchEvent.respondWith(
-        caches.match(FetchEvent.request).then(response => {
-            //已经缓存 直接返回 。没有则重新fetch 同时更新到缓存中！
-            return responseTimeout(response, FetchEvent.request) || fetch(FetchEvent.request).then(response => {
-                /**
-                 * 在 fetch 请求中添加对 .then() 的回调。
 
-                 * 获得响应后，执行以下检查：
-
-                 * 确保响应有效。
-
-                 * 检查并确保响应的状态为 200。
-
-                 * 确保响应类型为 basic，亦即由自身发起的请求。 这意味着，对第三方资产的请求不会添加到缓存。
-
-                 * 如果通过检查，则克隆响应。这样做的原因在于，该响应是 Stream，因此主体只能使用一次。由于我们想要返回能被浏览器使用的响应，并将其传递到缓存以供使用，因此需要克隆一份副本。我们将一份发送给浏览器，另一份则保留在缓存。
-                 *
-                 */
-                // Check if we received a valid response
-                if (!response || response.status !== 200 || response.type !== 'basic') {
-                    return response;
-                }
-                //
-                if (cacheWhitelist.indexOf('') >= 0) {
-                }
-                // IMPORTANT: Clone the response. A response is a stream
-                // and because we want the browser to consume the response
-                // as well as the cache consuming the response, we need
-                // to clone it so we have two streams.
-                let responseToCache = response.clone();
-                console.log(responseToCache);
-                caches.open(cacheName)
-                    .then(function (cache) {
-                        cache.put(FetchEvent.request, responseToCache);
+    if (dataUrl.test(FetchEvent.request.url)) {
+        //先取缓存 后立即更新缓存
+        FetchEvent.respondWith(
+            caches.match(FetchEvent.request).then(response => {
+                if (response) {
+                    fetchRequest(FetchEvent.request).then(data => {
+                        console.log(data);
                     });
-                //
-                return responseTimeout(response, FetchEvent.request);//response
-            });
-        })
-    );
+                    return responseTimeout(response, FetchEvent.request)
+                } else {
+                    return fetchRequest(FetchEvent.request);
+                }
+
+            })
+        );
+    } else {
+        //优先缓存
+        FetchEvent.respondWith(
+            caches.match(FetchEvent.request).then(response => {
+                //已经缓存 直接返回 。没有则重新fetch 同时更新到缓存中！
+                return responseTimeout(response, FetchEvent.request) || fetchRequest(FetchEvent.request)
+            })
+        );
+    }
 });
 
 /**
@@ -155,6 +140,61 @@ function updateCacheName() {
             })
         );
     })
+}
+
+/**
+ *
+ * @param request
+ * @param response
+ */
+function updateCache(request, response) {
+    caches.open(cacheName)
+        .then(function (cache) {
+            cache.put(request, response);
+        });
+}
+
+/**
+ *
+ * @param request
+ * @returns {Promise<Response>}
+ */
+function fetchRequest(request) {
+    /**
+     * 在 fetch 请求中添加对 .then() 的回调。
+
+     * 获得响应后，执行以下检查：
+
+     * 确保响应有效。
+
+     * 检查并确保响应的状态为 200。
+
+     * 确保响应类型为 basic，亦即由自身发起的请求。 这意味着，对第三方资产的请求不会添加到缓存。
+
+     * 如果通过检查，则克隆响应。这样做的原因在于，该响应是 Stream，因此主体只能使用一次。由于我们想要返回能被浏览器使用的响应，并将其传递到缓存以供使用，因此需要克隆一份副本。我们将一份发送给浏览器，另一份则保留在缓存。
+     *
+     */
+    return fetch(request).then(response => {
+        // Check if we received a valid response
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+        }
+        //
+        if (cacheWhitelist.indexOf('') >= 0) {
+        }
+        // IMPORTANT: Clone the response. A response is a stream
+        // and because we want the browser to consume the response
+        // as well as the cache consuming the response, we need
+        // to clone it so we have two streams.
+        updateCache(request, response.clone());
+        //todo updateCache() 也可以放到 调用之后 自行处理！
+        // fetchRequest(FetchEvent.request).then(data => {
+        //     console.log(data);
+        //     updateCache();
+        // });
+
+        return responseTimeout(response, request);//response
+    });
 }
 
 //response 只读 （没法把 timeout 参数写入对应的response中去，只能定义一个全局的变量：有点坑！）
