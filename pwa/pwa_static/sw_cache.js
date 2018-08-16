@@ -4,13 +4,19 @@
  */
 
 /**
- * 更新汇总
+ * sw更新 方案汇总
  *
  *      1、更新 cacheName 等待浏览器重启之后 新的sw 文件接管 （需要配合 activate 事件）
  *      2、install event 中 执行 self.skipWaiting(); 只需要sw文件有任何的更新 既可实现更新 （其实触发了install事件，重新拉取文件实现更新缓存！cache.addAll(cacheFiles) 不会被fetch拦截代理）
  *
+ * cacheFiles 更新方案汇总
+ *      1、永不更新 ：除非sw 触发更新了
+ *      2、实时更新 ：增加动态时间戳 永不命中
+ *      3、定时更新 ：timeout 参数控制 （两种方案实现，业务层 或者 sw层.具体看ajax.js）
+ *      4、下次更新 ：优先取缓存，同时异步取更新缓存
  *
  */
+
 const dataUrl = new RegExp('\.s?json'); //异步实时更新的数据 规则
 
 const cacheName = 'sw_cache_update';
