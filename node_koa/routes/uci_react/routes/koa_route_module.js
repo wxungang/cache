@@ -22,7 +22,7 @@ router.get('region/getCity.json', async (ctx, next) => {
 
     //await 必须放到 async里面使用。！注意 async 的位置
     _result = await req_proxy.get({
-        url: 'https://youhui.95516.com/wm-non-biz-web/restlet/region/getCity',
+        url: 'yourUrl',
         type: 'get',
         data: _query
     });
